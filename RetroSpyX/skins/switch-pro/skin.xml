@@ -37,6 +37,10 @@
 		<button name="l" image="circle2.png" x="70" y="0" width="140" height="30" />
 		<button name="r" image="circle2.png" x="420" y="0" width="140" height="30" />
 
+		<button name="gl" image="circle2.png" x="125" y="340" width="50" height="50" />
+		<button name="gr" image="circle2.png" x="485" y="340" width="50" height="50" />
+		<button name="chat" image="circle2.png" x="295" y="260" width="50" height="50" />
+
 		<button name="home" image="circle2.png" x="348" y="120" width="30" height="30" />
 		<button name="capture" image="circle2.png" x="259" y="120" width="30" height="30" />
 
