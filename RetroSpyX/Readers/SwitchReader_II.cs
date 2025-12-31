@@ -1,4 +1,4 @@
-﻿using Avalonia.Controls;
+using Avalonia.Controls;
 using System;
 using System.Text;
 using Vortice.XInput;
@@ -13,6 +13,10 @@ namespace RetroSpy.Readers
 
         private static readonly string?[] PRO_BUTTONS = {
             "y", "x", "b", "a", null, null, "r", "zr", "-", "+", "rs", "ls", "home", "capture", null, null, "down", "up", "right", "left", null, null, "l", "zl"
+        };
+
+        private static readonly string?[] PRO2_BUTTONS = {
+            "b", "a", "y", "x", "r", "zr", "+", "rs", "down", "right", "left", "up", "l", "zl", "-", "ls", "home", "capture", "gr", "gl", "chat", null, null, null
         };
 
         private static readonly string?[] POKKEN_BUTTONS = {
@@ -68,7 +72,7 @@ namespace RetroSpy.Readers
             {
                 byte[] binaryPacket = StringToByteArray(Encoding.UTF8.GetString(packet, 0, packet.Length).Trim());
 
-                if (binaryPacket[0] != 0x30)
+                if (binaryPacket[0] != 0x30 && binaryPacket[0] != 0x09)
                     return null;
 
                 // I have no idea why this code exists
@@ -98,12 +102,23 @@ namespace RetroSpy.Readers
                 {
                     for (int j = 0; j < 8; ++j)
                     {
-                        if (string.IsNullOrEmpty(PRO_BUTTONS[(i * 8) + j]))
+                        if (binaryPacket[0] == 0x30)
                         {
-                            continue;
-                        }
+                            if (string.IsNullOrEmpty(PRO_BUTTONS[(i * 8) + j]))
+                            {
+                                continue;
+                            }
 
-                        outState.SetButton(PRO_BUTTONS[(i * 8) + j], (binaryPacket[i + 3] & (1 << j)) != 0x00);
+                            outState.SetButton(PRO_BUTTONS[(i * 8) + j], (binaryPacket[i + 3] & (1 << j)) != 0x00);
+                        } else
+                        {
+                            if (string.IsNullOrEmpty(PRO2_BUTTONS[(i * 8) + j]))
+                            {
+                                continue;
+                            }
+
+                            outState.SetButton(PRO2_BUTTONS[(i * 8) + j], (binaryPacket[i + 3] & (1 << j)) != 0x00);
+                        }
                     }
                 }
 
