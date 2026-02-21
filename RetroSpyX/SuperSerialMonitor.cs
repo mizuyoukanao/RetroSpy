@@ -141,42 +141,54 @@ namespace RetroSpy
                 return;
             }
 
-            // Try and find 2 splitting characters in our buffer.
-            int lastSplitIndex = _localBuffer.LastIndexOf(0x0A);
-            if (lastSplitIndex <= 1)
-            {
-                return;
-            }
-
-            int sndLastSplitIndex = _localBuffer.LastIndexOf(0x0A, lastSplitIndex - 1);
-            if (lastSplitIndex == -1)
-            {
-                return;
-            }
-
-            // Grab the latest packet out of the buffer and fire it off to the receive event listeners.
-            int packetStart = sndLastSplitIndex + 1;
-            int packetSize = lastSplitIndex - packetStart;
-
             if (_printerMode)
             {
+                // Keep original printer-mode behavior (special-case, time-based).
+                int lastSplitIndex = _localBuffer.LastIndexOf(0x0A);
+                if (lastSplitIndex <= 1)
+                {
+                    return;
+                }
+
                 byte[] array = _localBuffer.ToArray();
                 string lastCommand = Encoding.UTF8.GetString(array, 0, lastSplitIndex);
 
-                if (_stopWatch.ElapsedMilliseconds > 500 && (lastCommand.Contains("# Finished Pretending To Print for fun!") || lastCommand.Contains("Memory Waterline:") || lastCommand.Contains("// Timed Out (Memory Waterline: 4B out of 400B)") || lastCommand.Contains("// Timed Out (Memory Waterline: 6B out of 400B)")))
+                if (_stopWatch.ElapsedMilliseconds > 500 &&
+                    (lastCommand.Contains("# Finished Pretending To Print for fun!") ||
+                     lastCommand.Contains("Memory Waterline:") ||
+                     lastCommand.Contains("// Timed Out (Memory Waterline: 4B out of 400B)") ||
+                     lastCommand.Contains("// Timed Out (Memory Waterline: 6B out of 400B)")))
                 {
                     PacketReceived(this, new SuperPacketDataEventArgs(_localBuffer.GetRange(0, lastSplitIndex).ToArray()));
-
-                    // Clear our buffer up until the last split character.
                     _localBuffer.RemoveRange(0, lastSplitIndex);
                 }
-            }
-            else
-            {
-                PacketReceived(this, new SuperPacketDataEventArgs(_localBuffer.GetRange(packetStart, packetSize).ToArray()));
 
-                // Clear our buffer up until the last split character.
-                _localBuffer.RemoveRange(0, lastSplitIndex);
+                return;
+            }
+
+            // Non-printer mode: emit every complete line between '\n' delimiters.
+            int startIndex = 0;
+            while (true)
+            {
+                int splitIndex = _localBuffer.IndexOf(0x0A, startIndex);
+                if (splitIndex == -1)
+                {
+                    break; // no more complete lines
+                }
+
+                int lineLen = splitIndex - startIndex;
+                if (lineLen > 0)
+                {
+                    PacketReceived(this, new SuperPacketDataEventArgs(_localBuffer.GetRange(startIndex, lineLen).ToArray()));
+                }
+
+                startIndex = splitIndex + 1; // move past '\n'
+            }
+
+            // Remove everything we have fully processed; keep any partial trailing line in buffer.
+            if (startIndex > 0)
+            {
+                _localBuffer.RemoveRange(0, startIndex);
             }
         }
 
